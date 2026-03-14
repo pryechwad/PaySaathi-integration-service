@@ -4,23 +4,27 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon src/server.js",
-    "start": "node src/server.js",
-    "mock": "node src/mockApi.js"
+    "dev": "concurrently \"node src/mockApi.js\" \"nodemon src/server.js\"",
+    "start": "concurrently \"node src/mockApi.js\" \"node src/server.js\"",
+    "mock": "node src/mockApi.js",
+    "server": "node src/server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
     "axios": "^1.13.6",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
+    "pg": "^8.20.0",
     "prisma": "^7.5.0"
   },
   "devDependencies": {
+    "concurrently": "^9.2.1",
     "nodemon": "^3.1.14"
   }
 }

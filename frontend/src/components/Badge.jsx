@@ -1,12 +1,22 @@
 export default function Badge({ label, type = "default" }) {
-  const styles = {
-    overdue: "bg-red-100 text-red-700",
-    paid: "bg-green-100 text-green-700",
-    pending: "bg-yellow-100 text-yellow-700",
-    default: "bg-gray-100 text-gray-700",
+  const map = {
+    overdue:  { bg: "#fef2f2", color: "#dc2626", border: "#fecaca" },
+    paid:     { bg: "#f0fdf4", color: "#16a34a", border: "#bbf7d0" },
+    pending:  { bg: "#fffbeb", color: "#d97706", border: "#fde68a" },
+    default:  { bg: "#f8fafc", color: "#64748b", border: "#e2e8f0" },
   };
+  const s = map[type] || map.default;
   return (
-    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${styles[type] || styles.default}`}>
+    <span style={{
+      display: "inline-block",
+      padding: "2px 8px",
+      borderRadius: 4,
+      fontSize: 11,
+      fontWeight: 600,
+      background: s.bg,
+      color: s.color,
+      border: `1px solid ${s.border}`,
+    }}>
       {label}
     </span>
   );
