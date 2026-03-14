@@ -148,6 +148,7 @@ Open `http://localhost:5173` and click **Sync Data** to pull from the external A
 | `POST` | `/api/sync` | Fetch & upsert all data from external API |
 | `GET` | `/api/customers` | List customers with outstanding balances |
 | `GET` | `/api/customers/:id/summary` | Customer detail with invoices & payments |
+| `GET` | `/api/customers/:id/credit` | Per-customer credit insight: risk level, overdue breakdown, days overdue, collection rate |
 | `GET` | `/api/invoices` | All invoices with computed status |
 | `POST` | `/api/invoices` | Create a manual invoice |
 | `POST` | `/api/invoices/:id/pay` | Record a payment against an invoice |
@@ -170,6 +171,33 @@ Open `http://localhost:5173` and click **Sync Data** to pull from the external A
 ```
 
 `skipped` and `errors` are only present when applicable. A single record failure does not abort the entire sync.
+
+### Credit Insight Response Format
+
+```json
+{
+  "customerId": 1,
+  "name": "ABC Pvt Ltd",
+  "email": "abc@gmail.com",
+  "totalInvoiced": 8000,
+  "totalPaid": 2000,
+  "outstandingBalance": 6000,
+  "totalOverdue": 3000,
+  "collectionRate": 25,
+  "riskLevel": "high",
+  "overdueInvoices": [
+    {
+      "invoiceId": "inv_101",
+      "amount": 5000,
+      "remaining": 3000,
+      "dueDate": "2024-03-20T00:00:00.000Z",
+      "daysOverdue": 420
+    }
+  ]
+}
+```
+
+`riskLevel` is `low` (no overdue), `medium` (overdue ≤ 30% of total invoiced), or `high` (overdue > 30%).
 
 ---
 
