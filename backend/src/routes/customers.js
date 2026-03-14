@@ -3,6 +3,24 @@ const prisma = require("../db");
 
 const router = express.Router();
 
+// POST /api/customers — create customer manually
+router.post("/", async (req, res) => {
+  try {
+    const { name, email } = req.body;
+    if (!name) return res.status(400).json({ error: "name is required" });
+    const customer = await prisma.customer.create({
+      data: {
+        externalId: `manual_cust_${Date.now()}`,
+        name,
+        email: email || "",
+      },
+    });
+    res.json({ id: customer.id, name: customer.name, email: customer.email });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/customers — list with outstanding balance
 router.get("/", async (req, res) => {
   try {

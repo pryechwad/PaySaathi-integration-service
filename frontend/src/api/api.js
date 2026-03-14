@@ -4,6 +4,7 @@ const api = axios.create({ baseURL: "http://localhost:3000/api" });
 
 export const syncData = () => api.post("/sync");
 export const getCustomers = () => api.get("/customers");
+export const createCustomer = (data) => api.post("/customers", data);
 export const getCustomerSummary = (id) => api.get(`/customers/${id}/summary`);
 export const getInvoices = () => api.get("/invoices");
 export const createInvoice = (data) => api.post("/invoices", data);

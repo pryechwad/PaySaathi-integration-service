@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { getInvoices, getCustomers, createInvoice, payInvoice } from "../api/api";
+import { getInvoices, getCustomers, createInvoice, payInvoice, createCustomer } from "../api/api";
 import Table from "../components/Table";
 import Badge from "../components/Badge";
 import Toast from "../components/Toast";
@@ -48,10 +48,29 @@ export default function Invoices() {
   const [customers, setCustomers] = useState([]);
   const [toast, setToast] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
-  const [payTarget, setPayTarget] = useState(null); // invoice object
+  const [payTarget, setPayTarget] = useState(null);
   const [form, setForm] = useState({ customerId: "", amount: "", dueDate: "" });
   const [payAmount, setPayAmount] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showNewCust, setShowNewCust] = useState(false);
+  const [newCust, setNewCust] = useState({ name: "", email: "" });
+  const [custLoading, setCustLoading] = useState(false);
+
+  const handleAddCustomer = async () => {
+    if (!newCust.name.trim()) return;
+    setCustLoading(true);
+    try {
+      const res = await createCustomer(newCust);
+      await load();
+      setForm((f) => ({ ...f, customerId: String(res.data.id) }));
+      setShowNewCust(false);
+      setNewCust({ name: "", email: "" });
+    } catch (err) {
+      showToast(err.response?.data?.error || "Failed to create customer", "error");
+    } finally {
+      setCustLoading(false);
+    }
+  };
 
   const load = useCallback(async () => {
     const [inv, cust] = await Promise.all([getInvoices(), getCustomers()]);
@@ -205,6 +224,44 @@ export default function Invoices() {
                 <option value="">Select customer...</option>
                 {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
+              {/* Add new customer inline */}
+              {!showNewCust ? (
+                <button
+                  type="button"
+                  onClick={() => setShowNewCust(true)}
+                  style={{ marginTop: 7, background: "none", border: "none", color: "#ea580c", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: 0 }}
+                >
+                  + New Customer
+                </button>
+              ) : (
+                <div style={{ marginTop: 10, background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, padding: "12px" }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: "#475569", marginBottom: 8 }}>New Customer</div>
+                  <input
+                    type="text" placeholder="Name *" value={newCust.name}
+                    onChange={(e) => setNewCust((p) => ({ ...p, name: e.target.value }))}
+                    style={{ ...inputStyle, marginBottom: 7 }}
+                  />
+                  <input
+                    type="email" placeholder="Email (optional)" value={newCust.email}
+                    onChange={(e) => setNewCust((p) => ({ ...p, email: e.target.value }))}
+                    style={{ ...inputStyle, marginBottom: 8 }}
+                  />
+                  <div style={{ display: "flex", gap: 7 }}>
+                    <button
+                      type="button" onClick={() => { setShowNewCust(false); setNewCust({ name: "", email: "" }); }}
+                      style={{ flex: 1, padding: "6px", border: "1px solid #e2e8f0", borderRadius: 6, background: "#fff", fontSize: 12, cursor: "pointer", color: "#64748b" }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button" onClick={handleAddCustomer} disabled={custLoading || !newCust.name.trim()}
+                      style={{ flex: 1, padding: "6px", border: "none", borderRadius: 6, background: "#ea580c", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", opacity: custLoading ? 0.6 : 1 }}
+                    >
+                      {custLoading ? "Saving..." : "Add & Select"}
+                    </button>
+                  </div>
+                </div>
+              )}
             </Field>
             <Field label="Amount (₹)">
               <input
