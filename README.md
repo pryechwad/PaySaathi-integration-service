@@ -204,22 +204,44 @@ Open `http://localhost:5173` and click **Sync Data** to pull from the external A
 ## Design Decisions
 
 ### External ID Strategy
-The external API uses string IDs (`cust_1`, `inv_101`). Rather than using these as primary keys, the schema uses auto-increment integer PKs internally and stores the external ID in a separate `external_id` column with a `UNIQUE` constraint. This decouples internal relational integrity from the external system's ID format and allows safe upserts without risk of collision.
+The external API uses string IDs (`cust_1`, `inv_101`). Rather than using these as primary keys, the schema uses auto-increment integer PKs internally and stores the external ID in a separate `external_id` column with a `UNIQUE` constraint.
+
+**Why:** Using external IDs as PKs would couple our relational integrity to a third-party system. If the external system changes its ID format or we switch providers, all FK references would break. Keeping internal PKs means our data model is stable regardless of what the external system does.
 
 ### Upsert on Sync
-Every sync call uses Prisma's `upsert` (insert or update) rather than delete-and-reinsert. This preserves any manually created records and avoids data loss if the external API is temporarily inconsistent or returns partial data.
+Every sync call uses Prisma's `upsert` (insert or update) rather than delete-and-reinsert.
+
+**Why:** Delete-and-reinsert would destroy any manually created records (invoices/payments added via the UI) and would also break if the external API returns partial data during a network hiccup. Upsert is safe to run repeatedly — it only updates what changed.
 
 ### Computed vs Stored Status
-Invoice status (`paid`, `overdue`, `pending`) is computed at query time rather than stored as a column. This avoids stale status values — a payment recorded at any time immediately reflects the correct status on the next read. The `status` column in the schema is retained for future use such as manual overrides.
+Invoice status (`paid`, `overdue`, `pending`) is computed at query time rather than stored as a column.
+
+**Why:** Storing status creates a consistency problem — every time a payment is recorded, you'd need to update the invoice status too. If that update fails or is missed, the status becomes stale. Computing it from `remaining > 0` and `dueDate < now` is always accurate and requires no maintenance.
 
 ### Remaining Balance
-`remaining = amount - sum(payments)` is always computed, never stored. This ensures consistency even when multiple partial payments exist against a single invoice.
+`remaining = amount - sum(payments)` is always computed, never stored.
+
+**Why:** Same reasoning as status — storing a derived value creates two sources of truth. With partial payments, you'd need to update the stored balance on every payment. Computing it at read time is simpler and always correct.
+
+### Parallel Fetch on Sync
+`Promise.all` is used to fetch customers, invoices, and payments simultaneously.
+
+**Why:** Sequential fetches would take 3x longer. Since the three endpoints are independent, parallel fetching is safe and significantly reduces sync latency.
 
 ### Route Ordering (Express)
-`GET /invoices/overdue` is registered before `/:id` routes to prevent Express from matching the string `"overdue"` as an `:id` parameter — a subtle but critical ordering issue.
+`GET /invoices/overdue` is registered before `POST /invoices/:id/pay`.
+
+**Why:** Express matches routes in registration order. If `/:id` were registered first, the string `"overdue"` would be captured as an ID parameter, causing the wrong handler to run. This is a subtle but critical ordering constraint.
+
+### Single Prisma Client (`db.js`)
+A single `PrismaClient` instance is exported from `db.js` and shared across all route files.
+
+**Why:** Each `PrismaClient` instance opens its own connection pool. Instantiating it per-request or per-file would exhaust database connections quickly. One shared instance is the correct pattern for Node.js applications.
 
 ### Separation of Responsibilities
-Each route file has a single concern: `sync.js` owns the integration layer, `customers.js` and `invoices.js` own domain reads/writes, and `insights.js` owns analytics aggregation. `db.js` exports a single shared Prisma client to avoid multiple connection pool instances.
+Each route file has a single concern: `sync.js` owns the integration layer, `customers.js` and `invoices.js` own domain reads/writes, and `insights.js` owns analytics aggregation.
+
+**Why:** Mixing concerns (e.g. putting sync logic inside the customer route) makes the code harder to test, reason about, and extend. If the external API changes, only `sync.js` needs to change — nothing else is affected.
 
 ### Database Schema
 
@@ -228,7 +250,7 @@ Customer → Invoice (one-to-many)
 Invoice  → Payment (one-to-many)
 ```
 
-Each model stores an `external_id` for idempotent sync and an internal `id` for relational integrity.
+Each model stores an `external_id` for idempotent sync and an internal `id` for relational integrity. The `createdAt` timestamp on Customer enables future audit and ordering capabilities.
 
 ---
 
@@ -247,6 +269,36 @@ Each model stores an `external_id` for idempotent sync and an internal `id` for 
 | Duplicate sync | Upsert ensures full idempotency, no duplicate records |
 | Fully paid invoice appearing as overdue | Overdue filter checks `remaining > 0`, not just `dueDate < now` |
 | Manual records surviving re-sync | `manual_` prefixed external IDs are never matched by external data |
+
+---
+
+## Assumptions
+
+Since the external accounting API was not provided as part of the assessment, a mock API (`mockApi.js`) was built to simulate it. The following assumptions were made about the external system's contract:
+
+### External API Shape
+
+| Endpoint | Response shape assumed |
+|----------|------------------------|
+| `GET /customers` | `[{ id, name, email }]` |
+| `GET /invoices` | `[{ id, customer_id, amount, due_date }]` |
+| `GET /payments` | `[{ id, invoice_id, amount, payment_date }]` |
+
+### Field-level Assumptions
+- `id` fields are strings (e.g. `cust_1`, `inv_101`, `pay_1`) — not integers
+- `due_date` and `payment_date` are ISO 8601 date strings (`YYYY-MM-DD`)
+- `amount` is a positive number (integer or float)
+- A payment references an invoice via `invoice_id`, not a customer directly
+- A single invoice can have multiple partial payments
+- The external API has no authentication — assumed to be internal/trusted
+- The external API returns all records in a single response (no pagination)
+
+### Business Logic Assumptions
+- An invoice is considered **overdue** only if `dueDate < today AND remaining > 0` — a fully paid invoice is never overdue even if its due date has passed
+- **Remaining balance** = `invoice.amount - sum(payments)` — partial payments are supported
+- **Risk level** is classified as: `low` (no overdue), `medium` (overdue ≤ 30% of total invoiced), `high` (overdue > 30%) — thresholds chosen as a reasonable starting point and can be made configurable
+- Re-running sync is safe — the service is designed to be idempotent by default
+- Manually created invoices/payments (via the UI) should survive a re-sync — achieved via `manual_` prefixed external IDs
 
 ---
 
