@@ -4,6 +4,7 @@ import Table from "../components/Table";
 import Badge from "../components/Badge";
 import Toast from "../components/Toast";
 import { printReceipt } from "../utils/printReceipt";
+import { downloadCSV, downloadPDF, overdueColumns } from "../utils/exportUtils";
 
 const fmt = (n) => `₹${Number(n).toLocaleString("en-IN")}`;
 const fmtDate = (d) => new Date(d).toLocaleDateString("en-IN");
@@ -50,7 +51,28 @@ export default function OverdueInvoices() {
     <div className="p-6 space-y-4">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: "#1e293b" }}>Overdue Invoices</h1>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: "#1e293b", margin: 0 }}>Overdue Invoices</h1>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            onClick={() => downloadCSV(`overdue-invoices-${Date.now()}.csv`, overdueColumns, invoices)}
+            style={{ background: "#f0fdf4", color: "#15803d", border: "1px solid #86efac", borderRadius: 7, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+          >
+            ↓ Export Excel
+          </button>
+          <button
+            onClick={() => downloadPDF(
+              "Overdue Invoices Report",
+              `Generated on ${new Date().toLocaleDateString("en-IN")}`,
+              overdueColumns, invoices,
+              [["Total Overdue Amount", `Rs. ${invoices.reduce((s, r) => s + r.remaining, 0).toLocaleString("en-IN")}`]]
+            )}
+            style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", borderRadius: 7, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+          >
+            ↓ Export PDF
+          </button>
+        </div>
+      </div>
 
       <Table
         columns={[

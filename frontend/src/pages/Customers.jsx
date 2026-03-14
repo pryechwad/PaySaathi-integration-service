@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getCustomers } from "../api/api";
+import { downloadCSV, downloadPDF, customerColumns } from "../utils/exportUtils";
 
 const fmt = (n) => `₹${Number(n).toLocaleString("en-IN")}`;
 
@@ -27,16 +28,36 @@ export default function Customers() {
           <h1 style={{ fontSize: 20, fontWeight: 700, color: "#1e293b", margin: 0 }}>Parties / Customers</h1>
           <p style={{ fontSize: 12, color: "#94a3b8", margin: "3px 0 0" }}>{customers.length} total parties</p>
         </div>
-        <input
-          type="text"
-          placeholder="Search by name or email..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{
-            padding: "8px 14px", border: "1px solid #e2e8f0", borderRadius: 8,
-            fontSize: 13, color: "#1e293b", outline: "none", width: 240,
-          }}
-        />
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button
+            onClick={() => downloadCSV(`customers-${Date.now()}.csv`, customerColumns, customers)}
+            style={{ background: "#f0fdf4", color: "#15803d", border: "1px solid #86efac", borderRadius: 7, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+          >
+            ↓ Export Excel
+          </button>
+          <button
+            onClick={() => downloadPDF(
+              "Customers Report",
+              `Generated on ${new Date().toLocaleDateString("en-IN")}`,
+              customerColumns, customers,
+              [
+                ["Total Invoiced", `Rs. ${customers.reduce((s, c) => s + c.totalInvoiced, 0).toLocaleString("en-IN")}`],
+                ["Total Collected", `Rs. ${customers.reduce((s, c) => s + c.totalPaid, 0).toLocaleString("en-IN")}`],
+                ["Total Outstanding", `Rs. ${customers.reduce((s, c) => s + c.outstandingBalance, 0).toLocaleString("en-IN")}`],
+              ]
+            )}
+            style={{ background: "#eff6ff", color: "#1d4ed8", border: "1px solid #93c5fd", borderRadius: 7, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+          >
+            ↓ Export PDF
+          </button>
+          <input
+            type="text"
+            placeholder="Search by name or email..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ padding: "7px 14px", border: "1px solid #e2e8f0", borderRadius: 7, fontSize: 13, color: "#1e293b", outline: "none", width: 220 }}
+          />
+        </div>
       </div>
 
       {/* Summary Bar */}

@@ -3,6 +3,7 @@ import { getDashboard, syncData, getCustomers } from "../api/api";
 import StatCard from "../components/StatCard";
 import Table from "../components/Table";
 import Toast from "../components/Toast";
+import { downloadCSV, downloadPDF, customerColumns } from "../utils/exportUtils";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   LineChart, Line, PieChart, Pie, Cell, Legend,
@@ -181,7 +182,32 @@ export default function Dashboard() {
 
       {/* Customer Overview Table */}
       <div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: "#475569", marginBottom: 10 }}>Customer Overview</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "#475569" }}>Customer Overview</div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={() => downloadCSV(`dashboard-customers-${Date.now()}.csv`, customerColumns, customers)}
+              style={{ background: "#f0fdf4", color: "#15803d", border: "1px solid #86efac", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+            >
+              ↓ Export Excel
+            </button>
+            <button
+              onClick={() => downloadPDF(
+                "Customer Overview Report",
+                `Generated on ${new Date().toLocaleDateString("en-IN")}`,
+                customerColumns, customers,
+                [
+                  ["Total Invoiced", `Rs. ${customers.reduce((s, c) => s + c.totalInvoiced, 0).toLocaleString("en-IN")}`],
+                  ["Total Collected", `Rs. ${customers.reduce((s, c) => s + c.totalPaid, 0).toLocaleString("en-IN")}`],
+                  ["Total Outstanding", `Rs. ${customers.reduce((s, c) => s + c.outstandingBalance, 0).toLocaleString("en-IN")}`],
+                ]
+              )}
+              style={{ background: "#eff6ff", color: "#1d4ed8", border: "1px solid #93c5fd", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+            >
+              ↓ Export PDF
+            </button>
+          </div>
+        </div>
         <Table
           columns={[
             { key: "name", label: "Customer" },
