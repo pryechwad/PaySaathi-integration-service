@@ -123,16 +123,23 @@ npx prisma generate
 ### 4. Start All Services
 
 ```bash
-# Terminal 1 — Mock external API (port 4000)
+# Terminal 1 — Mock API (port 4000) + Backend (port 3000) together
 cd backend
-node src/mockApi.js
+npm start
 
-# Terminal 2 — Integration backend (port 3000)
-node src/server.js
-
-# Terminal 3 — Frontend dashboard (port 5173)
+# Terminal 2 — Frontend dashboard (port 5173)
 cd frontend
 npm run dev
+```
+
+Or run them separately during development:
+
+```bash
+# Mock API only
+cd backend && npm run mock
+
+# Backend only (with auto-reload)
+cd backend && npm run dev
 ```
 
 ### 5. Sync Data
