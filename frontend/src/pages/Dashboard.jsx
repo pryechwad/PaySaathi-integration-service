@@ -61,37 +61,60 @@ export default function Dashboard() {
           <h1 style={{ fontSize: 20, fontWeight: 700, color: "#1e293b", margin: 0 }}>Dashboard</h1>
           <p style={{ fontSize: 12, color: "#94a3b8", margin: "3px 0 0" }}>Financial overview & analytics</p>
         </div>
-        <button
-          onClick={handleSync}
-          disabled={syncing}
-          style={{
-            background: syncing ? "#e2e8f0" : "#ea580c", color: syncing ? "#94a3b8" : "#fff",
-            border: "none", borderRadius: 8, padding: "9px 18px",
-            fontSize: 13, fontWeight: 600, cursor: syncing ? "not-allowed" : "pointer",
-            display: "flex", alignItems: "center", gap: 7, transition: "all 0.2s",
-          }}
-        >
-          {syncing ? (
-            <>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: "spin 1s linear infinite" }}>
-                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-              </svg>
-              Syncing...
-            </>
-          ) : (
-            <>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" />
-                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-              </svg>
-              Sync Data
-            </>
-          )}
-        </button>
-        <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
+          <button
+            onClick={handleSync}
+            disabled={syncing}
+            style={{
+              background: syncing ? "#e2e8f0" : "#ea580c", color: syncing ? "#94a3b8" : "#fff",
+              border: "none", borderRadius: 8, padding: "9px 18px",
+              fontSize: 13, fontWeight: 600, cursor: syncing ? "not-allowed" : "pointer",
+              display: "flex", alignItems: "center", gap: 7, transition: "all 0.2s",
+            }}
+          >
+            {syncing ? (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: "spin 1s linear infinite" }}>
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                </svg>
+                Syncing...
+              </>
+            ) : (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" />
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                </svg>
+                Sync Data
+              </>
+            )}
+          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={() => downloadCSV(`dashboard-customers-${Date.now()}.csv`, customerColumns, customers)}
+              style={{ background: "#f0fdf4", color: "#15803d", border: "1px solid #86efac", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+            >
+              ↓ Export Excel
+            </button>
+            <button
+              onClick={() => downloadPDF(
+                "Customer Overview Report",
+                `Generated on ${new Date().toLocaleDateString("en-IN")}`,
+                customerColumns, customers,
+                [
+                  ["Total Invoiced", `Rs. ${customers.reduce((s, c) => s + c.totalInvoiced, 0).toLocaleString("en-IN")}`],
+                  ["Total Collected", `Rs. ${customers.reduce((s, c) => s + c.totalPaid, 0).toLocaleString("en-IN")}`],
+                  ["Total Outstanding", `Rs. ${customers.reduce((s, c) => s + c.outstandingBalance, 0).toLocaleString("en-IN")}`],
+                ]
+              )}
+              style={{ background: "#eff6ff", color: "#1d4ed8", border: "1px solid #93c5fd", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+            >
+              ↓ Export PDF
+            </button>
+          </div>
+        </div>
       </div>
-
-      {/* Stat Cards */}
+      <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
       {stats && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 14 }}>
           <StatCard title="Total Customers" value={stats.totalCustomers} />
@@ -182,32 +205,7 @@ export default function Dashboard() {
 
       {/* Customer Overview Table */}
       <div>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "#475569" }}>Customer Overview</div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button
-              onClick={() => downloadCSV(`dashboard-customers-${Date.now()}.csv`, customerColumns, customers)}
-              style={{ background: "#f0fdf4", color: "#15803d", border: "1px solid #86efac", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
-            >
-              ↓ Export Excel
-            </button>
-            <button
-              onClick={() => downloadPDF(
-                "Customer Overview Report",
-                `Generated on ${new Date().toLocaleDateString("en-IN")}`,
-                customerColumns, customers,
-                [
-                  ["Total Invoiced", `Rs. ${customers.reduce((s, c) => s + c.totalInvoiced, 0).toLocaleString("en-IN")}`],
-                  ["Total Collected", `Rs. ${customers.reduce((s, c) => s + c.totalPaid, 0).toLocaleString("en-IN")}`],
-                  ["Total Outstanding", `Rs. ${customers.reduce((s, c) => s + c.outstandingBalance, 0).toLocaleString("en-IN")}`],
-                ]
-              )}
-              style={{ background: "#eff6ff", color: "#1d4ed8", border: "1px solid #93c5fd", borderRadius: 7, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
-            >
-              ↓ Export PDF
-            </button>
-          </div>
-        </div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "#475569", marginBottom: 10 }}>Customer Overview</div>
         <Table
           columns={[
             { key: "name", label: "Customer" },
