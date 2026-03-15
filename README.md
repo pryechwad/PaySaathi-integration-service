@@ -2,6 +2,7 @@
 
 A receivables management service that integrates with an external accounting API, stores data locally, and exposes financial insights via a REST API and dashboard UI.
 
+Demo video: https://www.loom.com/share/5ad76e4fb6484625b51edb1ce00f91f3
 ---
 
 ## Features Implemented
